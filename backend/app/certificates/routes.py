@@ -1,8 +1,9 @@
 import io
 import json
+import base64
 import asyncio
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
+from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Form
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from reportlab.pdfgen import canvas
@@ -116,13 +117,15 @@ def _pdf(event: dict, participant: dict, template: dict | None = None, certifica
 
 
 @router.post("/template")
-async def save_template(event_id: str, file: UploadFile | None = File(None), fields: str = "{}", user=Depends(current_user)):
+async def save_template(event_id: str, file: UploadFile | None = File(None), fields: str = Form("{}"), user=Depends(current_user)):
     _owned(event_id, user["uid"])
     try:
         fields_data = json.loads(fields.strip() or "{}")
     except json.JSONDecodeError:
         fields_data = {}
-    data = {"fields": fields_data, "filename": file.filename if file else None, "updatedAt": datetime.now(timezone.utc)}
+    ref = db().collection("events").document(event_id).collection("settings").document("certificate")
+    current = ref.get().to_dict() or {}
+    data = {"fields": fields_data, "updatedAt": datetime.now(timezone.utc)}
     if file:
         if file.content_type not in {"image/png", "image/jpeg"}:
             raise HTTPException(400, "Template must be a PNG/JPG image")
@@ -130,19 +133,57 @@ async def save_template(event_id: str, file: UploadFile | None = File(None), fie
         if len(content) > 5_000_000:
             raise HTTPException(400, "Template must be smaller than 5 MB")
         data["contentType"] = file.content_type
+        data["filename"] = file.filename
         path = f"templates/{event_id}/{file.filename}"
         try:
             bucket().blob(path).upload_from_string(content, content_type=file.content_type)
             data["store"] = "storage"
             data["path"] = path
+            data.pop("image", None)
         except Exception:
             fitted = _fit_image(content)
             if fitted is None:
                 raise HTTPException(400, "Cloud Storage unavailable and this image is too large to store inline (max ~900 KB). Enable Cloud Storage or use a smaller image.")
             data["store"] = "firestore"
+            data["path"] = None
             data["image"] = fitted
-    db().collection("events").document(event_id).collection("settings").document("certificate").set(data)
-    return {"filename": data.get("filename"), "store": data.get("store", "none"), "fields": fields}
+    else:
+        for key in ("store", "path", "image", "contentType", "filename"):
+            if current.get(key) is not None:
+                data[key] = current[key]
+    ref.set(data)
+    return {"filename": data.get("filename"), "store": data.get("store", "none"), "fields": fields_data}
+
+
+@router.get("/template")
+def get_template(event_id: str, user=Depends(current_user)):
+    _owned(event_id, user["uid"])
+    data = db().collection("events").document(event_id).collection("settings").document("certificate").get().to_dict() or {}
+    if not data.get("filename"):
+        return {"exists": False}
+    fields = data.get("fields") or {}
+    if isinstance(fields, str):
+        try:
+            fields = json.loads(fields)
+        except json.JSONDecodeError:
+            fields = {}
+    try:
+        if data.get("store") == "firestore" or data.get("image"):
+            image = data["image"]
+        elif data.get("path"):
+            image = bucket().blob(data["path"]).download_as_bytes()
+        else:
+            return {"exists": False}
+    except Exception:
+        return {"exists": False}
+    return {
+        "exists": True,
+        "filename": data.get("filename"),
+        "store": data.get("store", "none"),
+        "contentType": data.get("contentType", "image/png"),
+        "fields": fields,
+        "imageBase64": base64.b64encode(image).decode("ascii"),
+    }
 
 
 @router.post("/preview")

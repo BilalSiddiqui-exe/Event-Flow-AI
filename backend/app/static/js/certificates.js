@@ -196,8 +196,39 @@ export const certificatesModule = {
       $("generate-status").textContent = certs.length ? `${certs.length} certificate(s) generated` : "";
       $("certificate-send").classList.toggle("hidden", unsent.length === 0 || this.participants.length === 0);
       $("certificate-retry").classList.toggle("hidden", failed.length === 0);
+      this.restoreTemplate();
     } catch (error) {
       $("certificate-status").textContent = `Failed to load workflow: ${error.message}`;
+    }
+  },
+
+  async restoreTemplate() {
+    if (this.template || !this.event) return;
+    try {
+      const tpl = await api.request(`/api/events/${this.event.id}/certificates/template`);
+      if (!tpl.exists || !tpl.imageBase64) return;
+      const f = tpl.fields && tpl.fields.name ? tpl.fields.name : {};
+      const img = new Image();
+      img.onload = () => {
+        this.template = {
+          img,
+          fromSaved: true,
+          font: (f.font && /^(Helvetica|Times|Courier)/.test(f.font)) ? f.font : $("template-font").value,
+          size: Math.max(10, Math.min(120, Number(f.size) || 28)),
+          pdfX: Math.max(0, Math.min(842, Number(f.x) || 421)),
+          pdfY: Math.max(20, Math.min(595, Number(f.y) || 390)),
+        };
+        $("template-editor").classList.remove("hidden");
+        this.syncInputs();
+        this.draw();
+        $("template-status").textContent = (tpl.fields && tpl.fields.name)
+          ? `Restored your saved name placement — it is used on every certificate. Drag or adjust if needed, then Save template.`
+          : `Loaded your template. Drag the box over the Participant Name field, then Save template.`;
+      };
+      img.onerror = () => {};
+      img.src = `data:${tpl.contentType || "image/png"};base64,${tpl.imageBase64}`;
+    } catch (error) {
+      $("certificate-status").textContent = `Failed to restore template: ${error.message}`;
     }
   },
 
@@ -253,7 +284,7 @@ export const certificatesModule = {
 
   async saveTemplate() {
     const fileInput = $("template-file");
-    if (!this.template || !fileInput.files || !fileInput.files[0]) {
+    if (!this.template) {
       $("template-status").textContent = "Choose a template image first.";
       return;
     }
@@ -264,7 +295,6 @@ export const certificatesModule = {
     $("template-status").textContent = "";
     try {
       const fd = new FormData();
-      fd.append("file", fileInput.files[0]);
       fd.append("fields", JSON.stringify({
         name: {
           font: t.font,
@@ -273,8 +303,10 @@ export const certificatesModule = {
           y: Math.round(t.pdfY),
         },
       }));
+      if (fileInput.files && fileInput.files[0]) fd.append("file", fileInput.files[0]);
       const res = await api.request(`/api/events/${this.event.id}/certificates/template`, { method: "POST", body: fd });
-      $("template-status").textContent = `Template saved. Step 3 is now ready — generate certificates below.`;
+      t.fromSaved = true;
+      $("template-status").textContent = `Template saved. ${this.participants.length} participant(s) — generate certificates below.`;
       toast("Certificate template saved.", "success");
     } catch (error) {
       $("template-status").textContent = `Failed to save template: ${error.message}`;
