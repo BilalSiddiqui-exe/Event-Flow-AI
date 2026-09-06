@@ -91,7 +91,8 @@ code { background: var(--surface-2); border-radius: var(--r-xs); padding: 2px 6p
   padding: var(--s6) var(--s5); display: flex; flex-direction: column; gap: var(--s5);
   position: sticky; top: 0; height: 100vh;
 }
-.sidebar-brand { display: flex; align-items: baseline; gap: var(--s2); }
+.sidebar-brand { display: flex; align-items: center; gap: var(--s2); }
+  .brand-mark { width: 26px; height: 26px; border-radius: 7px; flex: none; }
 .sidebar h1 { font-size: 20px; font-weight: var(--fw-bold); letter-spacing: -.01em; }
 .sidebar h1 span { color: #6fe0bd; }
 .sidebar-copy { color: #9fb0c4; font-size: var(--fs-label); margin-top: var(--s1); }
@@ -219,6 +220,7 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 .login-card { max-width: 440px; width: 100%; background: var(--surface); padding: var(--s8); border: 1px solid var(--border); border-radius: var(--r-xl); box-shadow: var(--sh-2); }
 .login-card h1 { font-size: 26px; letter-spacing: -.02em; }
+  .login-mark { width: 52px; height: 52px; border-radius: 13px; margin: 0 auto var(--s3); display: block; }
 .login-card h1 span { color: var(--primary); }
 .login-card .feature-line { display: grid; gap: 10px; margin: var(--s6) 0; }
 .login-card .feature { display: flex; gap: 10px; align-items: flex-start; font-size: var(--fs-body); color: var(--text-2); }
