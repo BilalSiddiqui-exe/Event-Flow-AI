@@ -4,10 +4,10 @@ import httpx
 from fastapi import HTTPException
 from app.config import get_settings
 
-FALLBACK_MODELS = ["gemini-3.6-flash", "gemini-2.5-flash"]
+FALLBACK_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest", "gemini-3.8-flash"]
 MAX_ATTEMPTS = 4
 BASE_DELAY = 2.0
-RETRYABLE_CODES = {429, 500, 503}
+RETRYABLE_CODES = {404, 429, 500, 503}
 
 
 class _Retryable(Exception):

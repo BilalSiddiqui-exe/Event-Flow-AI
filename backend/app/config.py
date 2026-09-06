@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     google_application_credentials: str | None = None
     google_cloud_project: str | None = None
     gemini_api_key: str | None = None
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-flash-latest"
     email_api_key: str | None = None
     email_from: str | None = None
     email_provider_url: str | None = None
