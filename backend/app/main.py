@@ -29,7 +29,10 @@ async def lifespan(app: FastAPI):
         except Exception as err:
             print(f"[EventFlow] Warning initializing Firebase Admin / Firestore: {err}")
     else:
-        print("[EventFlow] WARNING: No service account key found! Google Cloud services may fail.")
+        if os.environ.get("SERVICE_ACCOUNT_JSON"):
+            print("[EventFlow] SERVICE_ACCOUNT_JSON is set but is NOT a parseable service-account JSON.")
+        else:
+            print("[EventFlow] WARNING: No service account key found and SERVICE_ACCOUNT_JSON env var is NOT set. Google Cloud services may fail.")
     yield
 
 
