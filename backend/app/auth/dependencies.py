@@ -22,18 +22,24 @@ def find_service_account_key() -> str | None:
     #     e.g. Render/Koyeb/Hugging Face Spaces: set SERVICE_ACCOUNT_JSON).
     inline = os.environ.get("SERVICE_ACCOUNT_JSON")
     if inline:
-        try:
-            import json as _json
-            data = _json.loads(inline)
-            if data.get("type") == "service_account":
+        import json as _json
+        candidates = [inline]
+        stripped = inline.strip()
+        if len(stripped) >= 2 and stripped[0] == '"' and stripped[-1] == '"':
+            candidates.append(stripped[1:-1])
+        for candidate in candidates:
+            try:
+                data = _json.loads(candidate)
+                if data.get("type") != "service_account":
+                    continue
                 dst = os.path.join(tempfile.gettempdir(), "eventflow_service_account.json")
                 Path(dst).write_text(_json.dumps(data), encoding="utf-8")
                 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = dst
                 if data.get("project_id"):
                     os.environ.setdefault("GOOGLE_CLOUD_PROJECT", data["project_id"])
                 return dst
-        except Exception:
-            pass
+            except Exception:
+                continue
 
     # 2. Check settings
     settings = get_settings()
