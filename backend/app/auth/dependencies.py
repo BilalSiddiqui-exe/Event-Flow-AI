@@ -1,5 +1,6 @@
 import os
 import tempfile
+import base64
 from pathlib import Path
 import firebase_admin
 from firebase_admin import auth, credentials
@@ -20,6 +21,7 @@ def find_service_account_key() -> str | None:
 
     # 1b. Inline credential JSON (for hosts without a metadata server,
     #     e.g. Render/Koyeb/Hugging Face Spaces: set SERVICE_ACCOUNT_JSON).
+    #     Accepts either raw JSON or a base64-encoded copy of the JSON.
     inline = os.environ.get("SERVICE_ACCOUNT_JSON")
     if inline:
         import json as _json
@@ -30,16 +32,20 @@ def find_service_account_key() -> str | None:
         for candidate in candidates:
             try:
                 data = _json.loads(candidate)
-                if data.get("type") != "service_account":
-                    continue
-                dst = os.path.join(tempfile.gettempdir(), "eventflow_service_account.json")
-                Path(dst).write_text(_json.dumps(data), encoding="utf-8")
-                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = dst
-                if data.get("project_id"):
-                    os.environ.setdefault("GOOGLE_CLOUD_PROJECT", data["project_id"])
-                return dst
             except Exception:
+                try:
+                    decoded = base64.b64decode(candidate.encode("ascii"), validate=True).decode("utf-8")
+                    data = _json.loads(decoded)
+                except Exception:
+                    continue
+            if not isinstance(data, dict) or data.get("type") != "service_account":
                 continue
+            dst = os.path.join(tempfile.gettempdir(), "eventflow_service_account.json")
+            Path(dst).write_text(_json.dumps(data), encoding="utf-8")
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = dst
+            if data.get("project_id"):
+                os.environ.setdefault("GOOGLE_CLOUD_PROJECT", data["project_id"])
+            return dst
 
     # 2. Check settings
     settings = get_settings()
