@@ -79,10 +79,11 @@
           <div class="header-actions">
             <button id="certificate-send" class="secondary hidden">Send by email</button>
             <button id="certificate-retry" class="secondary hidden">Retry failed</button>
-            <button id="certificate-back" class="secondary hidden">&larr; Back to events</button>
+            <button id="certificate-back" class="secondary hidden">&larr; Choose another event</button>
           </div>
         </div>
-        <p id="certificate-status" class="status-line" aria-live="polite">Select an event to start the certificate workflow.</p>
+        <p id="certificate-status" class="status-line" aria-live="polite">Pick an event to see and manage its certificates.</p>
+        <div id="cert-picker" class="panel hidden"></div>
         <div id="certificate-workflow" class="certificate-workflow hidden">
           <div class="panel">
             <h3>1. Import participants</h3>
@@ -149,10 +150,11 @@
         <div class="section-header">
           <div><p class="eyebrow">AI quizzes</p><h3 id="quiz-event-name">Quizzes</h3></div>
           <div class="header-actions">
-            <button id="quiz-back" class="secondary hidden">&larr; Back to events</button>
+            <button id="quiz-back" class="secondary hidden">&larr; Choose another event</button>
           </div>
         </div>
-        <p id="quiz-status" class="status-line" aria-live="polite">Select an event to build AI quizzes.</p>
+        <p id="quiz-status" class="status-line" aria-live="polite">Pick an event to build, publish and track AI quizzes.</p>
+        <div id="quiz-picker" class="panel hidden"></div>
         <div id="quiz-workflow" class="hidden">
           <div class="panel">
             <h3>1. Generate with Gemini</h3>

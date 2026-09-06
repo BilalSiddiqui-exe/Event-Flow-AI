@@ -23,6 +23,8 @@ const setView = (id) => {
   }
   if (id === "events") eventsModule.load();
   if (id === "dashboard") loadMetrics();
+  if (id === "certificates") certificatesModule.showPicker();
+  if (id === "quizzes") quizzesModule.showPicker();
 };
 
 const loadMetrics = async () => {
@@ -90,8 +92,8 @@ $("#settings-sign-out")?.addEventListener("click", () => logOut());
 eventsModule.onOpen = (event) => { certificatesModule.open(event); setView("certificates"); };
 eventsModule.onOpenQuizzes = (event) => { quizzesModule.open(event); setView("quizzes"); };
 eventsModule.onError = (message) => import("./ui.js").then(({ toast }) => toast(message, "error"));
-$("#certificate-back")?.addEventListener("click", () => setView("events"));
-$("#quiz-back")?.addEventListener("click", () => setView("events"));
+$("#certificate-back")?.addEventListener("click", () => certificatesModule.back());
+$("#quiz-back")?.addEventListener("click", () => quizzesModule.back());
 $("#certificate-send")?.addEventListener("click", () => certificatesModule.send());
 $("#certificate-retry")?.addEventListener("click", () => certificatesModule.retry());
 $("#csv-form")?.addEventListener("submit", (event) => { event.preventDefault(); certificatesModule.importCsv(event.target); });
@@ -101,6 +103,19 @@ $("#preview-certificate")?.addEventListener("click", () => certificatesModule.pr
 $("#generate-certificates")?.addEventListener("click", () => certificatesModule.generate());
 $("#quiz-generate-form")?.addEventListener("submit", (event) => { event.preventDefault(); quizzesModule.generate(event.target); });
 $("#quiz-save-draft")?.addEventListener("click", () => quizzesModule.saveDraft());
+document.addEventListener("click", (event) => {
+  const certPick = event.target.closest("[data-cert-pick]");
+  if (certPick) {
+    const target = (eventsModule.events || []).find((e) => e.id === certPick.dataset.certPick);
+    if (target) certificatesModule.open(target);
+    return;
+  }
+  const quizPick = event.target.closest("[data-quiz-pick]");
+  if (quizPick) {
+    const target = (eventsModule.events || []).find((e) => e.id === quizPick.dataset.quizPick);
+    if (target) quizzesModule.open(target);
+  }
+});
 
 watchAuth(async (user) => {
   const authenticated = Boolean(user);
@@ -222,9 +237,9 @@ if (window.EVENTFLOW_PUBLIC_QUIZ_ID) {
             $("#quiz-dots").querySelectorAll("span").forEach((dot, qi) => dot.classList.toggle("done", answersArray[qi] !== null && qi !== index));
           });
         });
-        $("#q-prev").hidden = index === 0;
-        $("#q-next").hidden = index === quiz.questions.length - 1;
-        $("#q-submit").hidden = false;
+        $("#q-prev").classList.toggle("hidden", index === 0);
+        $("#q-next").classList.toggle("hidden", index === quiz.questions.length - 1);
+        $("#q-submit").classList.remove("hidden");
       };
 
       $("#q-prev").addEventListener("click", () => { if (index > 0) { index -= 1; renderQuestion(); } });

@@ -1,6 +1,7 @@
 import { api } from "./api.js";
 import { uploadParticipants } from "./csv.js";
 import { toast } from "./ui.js";
+import { eventsModule } from "./events.js";
 
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[c]));
 const $ = (id) => document.getElementById(id);
@@ -19,6 +20,7 @@ export const certificatesModule = {
     this.event = event;
     this.valid = [];
     this.participants = [];
+    this.hidePicker();
     this.clearEditor();
     $("certificate-event-name").textContent = event.name;
     $("certificate-status").textContent = "Ready. Import participants below to continue.";
@@ -36,6 +38,51 @@ export const certificatesModule = {
     $("template-file").value = "";
     this.bindEditor();
     this.refresh();
+  },
+
+  hidePicker() {
+    const panel = $("cert-picker");
+    if (panel) panel.classList.add("hidden");
+  },
+
+  async showPicker() {
+    if (this.event) return;
+    const panel = $("cert-picker");
+    if (!panel) return;
+    $("certificate-workflow").classList.add("hidden");
+    $("certificate-back").classList.add("hidden");
+    $("certificate-send").classList.add("hidden");
+    $("certificate-retry").classList.add("hidden");
+    const events = eventsModule.events || [];
+    if (!events.length) {
+      try { await eventsModule.load(); } catch (error) { /* best effort */ }
+    }
+    const loaded = eventsModule.events || [];
+    if (!loaded.length) {
+      panel.innerHTML = `<h3>Choose an event</h3><p class="muted">No events yet. Create one from the Events section first.</p>`;
+      panel.classList.remove("hidden");
+      return;
+    }
+    panel.innerHTML = `<h3>Choose an event</h3>
+      <div class="card-list">
+        ${loaded.map((e) => `<article class="card event-card" data-event-id="${esc(e.id)}"><h4>${esc(e.name)}</h4><p class="muted">${esc(e.date || "")} · ${esc(e.location || "Location not set")}</p><p class="muted" data-cert-summary></p><div class="card-actions"><button class="secondary" data-cert-pick="${esc(e.id)}">Open certificates</button></div></article>`).join("")}
+      </div>`;
+    panel.classList.remove("hidden");
+    loaded.forEach(async (e) => {
+      try {
+        const certs = await api.request(`/api/events/${e.id}/certificates`);
+        const participants = await api.request(`/api/events/${e.id}/participants`);
+        const sent = certs.filter((c) => c.status === "sent").length;
+        const summary = panel.querySelector(`[data-event-id="${e.id}"] [data-cert-summary]`);
+        if (summary) summary.textContent = `${participants.length} participant(s) · ${certs.length} generated · ${sent} sent`;
+      } catch (error) { /* keep card as-is */ }
+    });
+  },
+
+  back() {
+    this.event = null;
+    $("certificate-event-name").textContent = "Certificates";
+    this.showPicker();
   },
 
   clearEditor() {

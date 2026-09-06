@@ -1,6 +1,7 @@
 import { generateQuiz, createQuiz, listQuizzes, publishQuiz, quizAnalytics, deleteQuiz } from "./quiz.js";
 import { renderAnalytics } from "./analytics.js";
 import { confirmDialog, toast } from "./ui.js";
+import { eventsModule } from "./events.js";
 
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[c]));
 const $ = (id) => document.getElementById(id);
@@ -14,6 +15,7 @@ export const quizzesModule = {
   open(event) {
     this.event = event;
     this.generated = [];
+    this.hidePicker();
     $("quiz-event-name").textContent = event.name;
     $("quiz-status").textContent = "Ready. Generate questions below, review, save, then publish.";
     $("quiz-workflow").classList.remove("hidden");
@@ -25,6 +27,51 @@ export const quizzesModule = {
     $("quiz-review-list").innerHTML = "";
     $("quiz-analytics").innerHTML = "";
     this.refresh();
+  },
+
+  hidePicker() {
+    const panel = $("quiz-picker");
+    if (panel) panel.classList.add("hidden");
+  },
+
+  async showPicker() {
+    if (this.event) return;
+    const panel = $("quiz-picker");
+    if (!panel) return;
+    $("quiz-workflow").classList.add("hidden");
+    $("quiz-back").classList.add("hidden");
+    $("quiz-review-panel").classList.add("hidden");
+    $("quiz-analytics-panel").classList.add("hidden");
+    const events = eventsModule.events || [];
+    if (!events.length) {
+      try { await eventsModule.load(); } catch (error) { /* best effort */ }
+    }
+    const loaded = eventsModule.events || [];
+    if (!loaded.length) {
+      panel.innerHTML = `<h3>Choose an event</h3><p class="muted">No events yet. Create one from the Events section first.</p>`;
+      panel.classList.remove("hidden");
+      return;
+    }
+    panel.innerHTML = `<h3>Choose an event</h3>
+      <div class="card-list">
+        ${loaded.map((e) => `<article class="card event-card" data-event-id="${esc(e.id)}"><h4>${esc(e.name)}</h4><p class="muted">${esc(e.date || "")} · ${esc(e.location || "Location not set")}</p><p class="muted" data-quiz-summary></p><div class="card-actions"><button class="secondary" data-quiz-pick="${esc(e.id)}">Open quizzes</button></div></article>`).join("")}
+      </div>`;
+    panel.classList.remove("hidden");
+    loaded.forEach(async (e) => {
+      try {
+        const quizzes = await listQuizzes(e.id);
+        const published = quizzes.filter((q) => q.status === "published").length;
+        const summary = panel.querySelector(`[data-event-id="${e.id}"] [data-quiz-summary]`);
+        if (summary) summary.textContent = `${quizzes.length} quiz(zes) · ${published} published`;
+      } catch (error) { /* keep card as-is */ }
+    });
+  },
+
+  back() {
+    this.event = null;
+    this.generated = [];
+    $("quiz-event-name").textContent = "Quizzes";
+    this.showPicker();
   },
 
   async refresh() {
