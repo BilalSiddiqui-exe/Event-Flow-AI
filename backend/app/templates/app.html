@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="shell">
+  <aside class="sidebar">
+    <div>
+      <div class="sidebar-brand"><h1>EventFlow <span>AI</span></h1></div>
+      <p class="sidebar-copy">Event operations, automated.</p>
+    </div>
+    <nav aria-label="Primary">
+      <a href="#dashboard"><span class="nav-dot"></span>Dashboard</a>
+      <a href="#events"><span class="nav-dot"></span>Events</a>
+      <a href="#certificates"><span class="nav-dot"></span>Certificates</a>
+      <a href="#quizzes"><span class="nav-dot"></span>Quizzes</a>
+      <a href="#about"><span class="nav-dot"></span>About</a>
+      <a href="#settings"><span class="nav-dot"></span>Settings</a>
+    </nav>
+    <div class="sidebar-foot">
+      <span id="user-label" class="caption muted"></span>
+      <button id="sign-out" class="secondary hidden">Sign out</button>
+    </div>
+  </aside>
+  <main class="content">
+    <section id="login-view" class="login-view">
+      <div class="login-card">
+        <div class="eyebrow">Organizer workspace</div>
+        <h1>EventFlow <span>AI</span></h1>
+        <p class="muted" style="margin-top:8px">Event operations, automated.</p>
+        <div class="feature-line">
+          <div class="feature"><span class="feature-mark">✓</span>Automated, personalized certificates — made for your design.</div>
+          <div class="feature"><span class="feature-mark">✓</span>Interactive AI-generated quiz sessions with live results.</div>
+          <div class="feature"><span class="feature-mark">✓</span>One workspace for the entire event lifecycle.</div>
+        </div>
+        <button id="google-sign-in">Continue with Google</button>
+        <p id="auth-error" class="form-error"></p>
+      </div>
+    </section>
+    <section id="app-view" class="hidden">
+      <header class="page-header">
+        <div><p class="eyebrow">Organizer workspace</p><h2 id="page-title">Dashboard</h2></div>
+      </header>
+      <section id="dashboard" class="view hidden" aria-label="Dashboard">
+        <div class="metric-grid" aria-live="polite">
+          <div class="metric"><span>Events</span><strong id="metric-events">0</strong></div>
+          <div class="metric"><span>Participants</span><strong id="metric-participants">0</strong></div>
+          <div class="metric"><span>Certificates</span><strong id="metric-certificates">0</strong></div>
+          <div class="metric"><span>Quizzes</span><strong id="metric-quizzes">0</strong></div>
+        </div>
+        <div class="panel">
+          <div class="section-header"><h3>Recent events</h3></div>
+          <div id="recent-events" class="empty-state"><p>No events yet.</p></div>
+        </div>
+      </section>
+      <section id="events" class="view hidden" aria-label="Events">
+        <div class="section-header">
+          <div><p class="eyebrow">Workspaces</p><h3>Events</h3></div>
+          <button id="show-event-form">Create event</button>
+        </div>
+        <div id="event-list" class="card-list" aria-live="polite"></div>
+      </section>
+      <div id="event-modal" class="modal-backdrop hidden">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="event-modal-title">
+          <div class="modal-head"><h3 id="event-modal-title">Create event</h3><button id="event-modal-close" class="modal-close" aria-label="Close">×</button></div>
+          <div class="modal-body">
+            <form id="event-form" class="form-grid" style="margin:0">
+              <label>Name<input name="name" required maxlength="120"></label>
+              <label>Date<input name="date" type="date" required></label>
+              <label>Location<input name="location"></label>
+              <label>Organizer name<input name="organizer_name"></label>
+              <label class="full">Description<textarea name="description"></textarea></label>
+              <div class="full" style="display:flex;gap:12px"><button type="submit">Create event</button><button type="button" id="cancel-event" class="secondary">Cancel</button></div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <section id="certificates" class="view hidden" aria-label="Certificates">
+        <div class="section-header">
+          <div><p class="eyebrow">Certificate workflow</p><h3 id="certificate-event-name">Certificates</h3></div>
+          <div class="header-actions">
+            <button id="certificate-send" class="secondary hidden">Send by email</button>
+            <button id="certificate-retry" class="secondary hidden">Retry failed</button>
+            <button id="certificate-back" class="secondary hidden">&larr; Back to events</button>
+          </div>
+        </div>
+        <p id="certificate-status" class="status-line" aria-live="polite">Select an event to start the certificate workflow.</p>
+        <div id="certificate-workflow" class="certificate-workflow hidden">
+          <div class="panel">
+            <h3>1. Import participants</h3>
+            <p class="muted">Upload a CSV with columns <code>name,email,college,registration_id</code>. Participants will be validated before import.</p>
+            <form id="csv-form" class="form-grid">
+              <label class="full">CSV file<input id="csv-file" name="file" type="file" accept=".csv,text/csv"></label>
+              <div class="full"><button type="submit">Upload CSV</button></div>
+            </form>
+            <div id="csv-result" aria-live="polite"></div>
+            <div id="confirm-row" class="hidden">
+              <button id="confirm-participants">Confirm and save participants</button>
+              <p id="participant-count" class="muted"></p>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>2. Certificate template</h3>
+            <p class="muted">Upload your <strong>already-designed</strong> certificate (JPEG/PNG). Event name, signs and description stay on your design — drag the participant name into place; font and size apply live.</p>
+            <form id="template-form">
+              <label>Template image<input id="template-file" name="file" type="file" accept="image/png,image/jpeg"></label>
+            </form>
+            <div id="template-editor" class="hidden">
+              <div class="template-toolbar">
+                <div class="tool-group">
+                  <label for="template-font">Name font</label>
+                  <select id="template-font"><option value="Helvetica-Bold" selected>Helvetica Bold</option><option value="Helvetica">Helvetica</option><option value="Helvetica-Oblique">Helvetica Italic</option><option value="Helvetica-BoldOblique">Helvetica Bold Italic</option><option value="Times-Bold">Times New Roman Bold</option><option value="Times-Roman">Times New Roman</option><option value="Times-Italic">Times Italic</option><option value="Times-BoldItalic">Times Bold Italic</option><option value="Courier-Bold">Courier Bold</option><option value="Courier">Courier</option></select>
+                </div>
+                <div class="tool-group">
+                  <label for="template-size">Name size (pt)</label>
+                  <input id="template-size" type="number" min="10" max="120" value="28">
+                </div>
+                <div class="tool-group">
+                  <label for="template-x">Position X (0-842)</label>
+                  <input id="template-x" type="number" min="0" max="842" value="421">
+                </div>
+                <div class="tool-group">
+                  <label for="template-y">Position Y (0-595)</label>
+                  <input id="template-y" type="number" min="0" max="595" value="390">
+                </div>
+              </div>
+              <div class="template-canvas-wrap">
+                <canvas id="template-canvas" width="842" height="595"></canvas>
+                <p class="template-tip">Click or drag anywhere on the template to position the name, then save.</p>
+              </div>
+              <button id="template-save">Save template</button>
+              <p id="template-status" class="status-line" aria-live="polite"></p>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>3. Preview &amp; generate</h3>
+            <p class="muted">Preview the first participant's certificate, then generate all certificates.</p>
+            <div id="generate-row" class="hidden">
+              <button id="preview-certificate" class="secondary">Preview</button>
+              <button id="generate-certificates">Generate certificates</button>
+              <div id="generate-progress" class="progress indeterminate hidden">
+                <div class="progress-track"><div class="progress-bar" role="progressbar" aria-label="Generating certificates"></div></div>
+                <p class="progress-caption" aria-live="polite">Generating certificates…</p>
+              </div>
+              <p id="generate-status" class="status-line" aria-live="polite"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section id="quizzes" class="view hidden" aria-label="Quizzes">
+        <div class="section-header">
+          <div><p class="eyebrow">AI quizzes</p><h3 id="quiz-event-name">Quizzes</h3></div>
+          <div class="header-actions">
+            <button id="quiz-back" class="secondary hidden">&larr; Back to events</button>
+          </div>
+        </div>
+        <p id="quiz-status" class="status-line" aria-live="polite">Select an event to build AI quizzes.</p>
+        <div id="quiz-workflow" class="hidden">
+          <div class="panel">
+            <h3>1. Generate with Gemini</h3>
+            <p class="muted">Answers are computed server-side, so participants never see the correct answers.</p>
+            <form id="quiz-generate-form" class="form-grid">
+              <label class="full">Topic<input name="topic" required placeholder="e.g. Python fundamentals"></label>
+              <label>Question count<input name="question_count" type="number" min="1" max="50" value="5"></label>
+              <label>Difficulty<select name="difficulty"><option value="easy">Easy</option><option value="intermediate" selected>Intermediate</option><option value="hard">Hard</option></select></label>
+              <label>Time limit (minutes)<input name="duration" type="number" min="1" max="180" value="10"></label>
+              <label class="full">Audience<input name="audience" value="college students"></label>
+              <label class="full">Quiz title (optional)<input name="title" placeholder="Defaults to topic"></label>
+              <div class="full"><button type="submit" id="quiz-generate-submit">Generate questions</button></div>
+            </form>
+            <div id="quiz-generate-progress" class="progress indeterminate hidden">
+              <div class="progress-track"><div class="progress-bar" role="progressbar" aria-label="Generating quiz"></div></div>
+              <p class="progress-caption" aria-live="polite"></p>
+            </div>
+            <p id="quiz-generate-status" class="status-line" aria-live="polite"></p>
+          </div>
+          <div class="panel hidden" id="quiz-review-panel">
+            <h3>2. Review questions</h3>
+            <p class="muted">Edit any question, then save as a draft quiz.</p>
+            <div id="quiz-review-list"></div>
+            <button id="quiz-save-draft">Save quiz (draft)</button>
+            <p id="quiz-save-status" class="status-line" aria-live="polite"></p>
+          </div>
+          <div class="panel">
+            <h3>3. Quizzes</h3>
+            <div id="quiz-list" aria-live="polite"></div>
+          </div>
+          <div class="panel hidden" id="quiz-analytics-panel">
+            <h3>4. Analytics</h3>
+            <div id="quiz-analytics"></div>
+          </div>
+        </div>
+      </section>
+      <section id="about" class="view hidden" aria-label="About">
+        <div class="panel">
+          <p class="eyebrow">About</p>
+          <h3>EventFlow AI</h3>
+          <p>EventFlow AI was created by <strong>Bilal Siddiqui</strong>, a developer who loves building tools that make people's work easier and more impactful.</p>
+          <p>The idea behind EventFlow AI is simple: organizing an event involves a surprising amount of repetitive, time-consuming work — managing workflows, preparing and distributing certificates, and keeping participants engaged. Bilal built EventFlow AI to operate and automate that entire lifecycle in one place:</p>
+          <ul>
+            <li><strong>Events</strong> — plan and manage your event operations from a single workspace.</li>
+            <li><strong>Certificates</strong> — import attendees, generate personalized certificates, and distribute them by email automatically.</li>
+            <li><strong>Quizzes</strong> — run interactive, AI-generated quiz sessions with live results, so participants stay engaged and learning is fun.</li>
+          </ul>
+          <p>The goal was to add real value to the work and efforts of every organizer and participant who uses it — so they can focus on what matters most instead of the busywork.</p>
+        </div>
+      </section>
+      <section id="settings" class="view hidden" aria-label="Settings">
+        <div class="panel" style="max-width:560px">
+          <p class="eyebrow">Settings</p>
+          <h3>Organizer account</h3>
+          <div class="form-grid">
+            <label>Signed in as<input id="settings-user-email" value="" disabled></label>
+          </div>
+          <p class="muted">Firebase host: {{ firebase_config.get('authDomain', '') if firebase_config else '' }}</p>
+          <button id="settings-sign-out" class="secondary">Sign out</button>
+        </div>
+      </section>
+    </section>
+  </main>
+</div>
+<div id="modal-root"></div>
+<div id="toast-zone" class="toast-zone" aria-live="polite"></div>
+{% if public_quiz_id %}
+<script>window.EVENTFLOW_PUBLIC_QUIZ_ID = {{ public_quiz_id | tojson }};</script>
+{% endif %}
+{% endblock %}

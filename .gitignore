@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+.venv/
+node_modules/
+dist/
+*.pyc
+*.log
+.DS_Store
+service-account*.json
+*serviceAccount*.json
+*.json
+!package.json
+!tsconfig*.json
