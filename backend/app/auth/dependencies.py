@@ -1,4 +1,5 @@
 import os
+import tempfile
 from pathlib import Path
 import firebase_admin
 from firebase_admin import auth, credentials
@@ -16,6 +17,23 @@ def find_service_account_key() -> str | None:
     env_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
     if env_path and Path(env_path).is_file():
         return str(Path(env_path).resolve())
+
+    # 1b. Inline credential JSON (for hosts without a metadata server,
+    #     e.g. Render/Koyeb/Hugging Face Spaces: set SERVICE_ACCOUNT_JSON).
+    inline = os.environ.get("SERVICE_ACCOUNT_JSON")
+    if inline:
+        try:
+            import json as _json
+            data = _json.loads(inline)
+            if data.get("type") == "service_account":
+                dst = os.path.join(tempfile.gettempdir(), "eventflow_service_account.json")
+                Path(dst).write_text(_json.dumps(data), encoding="utf-8")
+                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = dst
+                if data.get("project_id"):
+                    os.environ.setdefault("GOOGLE_CLOUD_PROJECT", data["project_id"])
+                return dst
+        except Exception:
+            pass
 
     # 2. Check settings
     settings = get_settings()
