@@ -224,12 +224,18 @@ if (window.EVENTFLOW_PUBLIC_QUIZ_ID) {
         });
         $("#q-prev").hidden = index === 0;
         $("#q-next").hidden = index === quiz.questions.length - 1;
-        $("#q-submit").hidden = index !== quiz.questions.length - 1;
+        $("#q-submit").hidden = false;
       };
 
       $("#q-prev").addEventListener("click", () => { if (index > 0) { index -= 1; renderQuestion(); } });
       $("#q-next").addEventListener("click", () => { if (index < quiz.questions.length - 1) { index += 1; renderQuestion(); } });
-      $("#q-submit").addEventListener("click", () => submit(infoState, startedAtState));
+      $("#q-submit").addEventListener("click", () => {
+        if (index < quiz.questions.length - 1) {
+          const unanswered = quiz.questions.length - answersArray.filter((a) => a !== null).length;
+          if (unanswered > 0 && !window.confirm(`Submit now? You have not answered ${unanswered} of ${quiz.questions.length} question(s).`)) return;
+        }
+        submit(infoState, startedAtState);
+      });
 
       let infoState = { name: "", email: "" };
       let startedAtState = "";
